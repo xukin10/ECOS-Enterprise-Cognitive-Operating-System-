@@ -1,0 +1,10 @@
+# AetherOS Code Owners
+
+# Default owners
+* @xukin10
+
+# Core
+core/ @xukin10
+
+# Domain
+domain/ @xukin10
