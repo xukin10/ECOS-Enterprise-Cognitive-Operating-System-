@@ -1,37 +1,42 @@
 package runtime
 
-// Manager stores engines and provides ordered iteration.
-// Engines are stored in registration order.
+import (
+	"sync"
+)
+
 type Manager struct {
-	engines []*Engine
+	mu      sync.RWMutex
+	engines map[string]Engine
+	order   []string
 }
 
-// NewManager creates an empty engine manager.
 func NewManager() *Manager {
-	return &Manager{engines: make([]*Engine, 0)}
-}
-
-// Add appends an engine to the managed list.
-func (m *Manager) Add(engine *Engine) {
-	m.engines = append(m.engines, engine)
-}
-
-// All returns a copy of all registered engines in insertion order.
-func (m *Manager) All() []*Engine {
-	result := make([]*Engine, len(m.engines))
-	copy(result, m.engines)
-	return result
-}
-
-// Len returns the number of registered engines.
-func (m *Manager) Len() int {
-	return len(m.engines)
-}
-
-// Get returns the engine at index i. Returns nil if out of range.
-func (m *Manager) Get(i int) *Engine {
-	if i < 0 || i >= len(m.engines) {
-		return nil
+	return &Manager{
+		engines: make(map[string]Engine),
+		order:   []string{},
 	}
-	return m.engines[i]
+}
+
+func (m *Manager) Register(e Engine) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	name := e.Name()
+	if _, ok := m.engines[name]; ok {
+		return
+	}
+
+	m.engines[name] = e
+	m.order = append(m.order, name)
+}
+
+func (m *Manager) Engines() []Engine {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	result := make([]Engine, 0, len(m.order))
+	for _, name := range m.order {
+		result = append(result, m.engines[name])
+	}
+	return result
 }
